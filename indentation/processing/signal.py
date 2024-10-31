@@ -19,3 +19,16 @@ def processing_smooth_data(data, window_size=5):
     data['force'] = np.convolve(data['force'], np.ones(window_size)/window_size, mode='valid')
     data['z'] = data['z'][:len(data['force'])]  # Adjust z to match the length
     return data
+
+
+def crop(data):
+    force = data["force"].copy()
+    displ = data["z"].copy()
+
+    force = force[:-10]
+    ix_end = np.argmax(force)
+    ix_start = int(len(force)/2)
+
+    for key in data:
+        data[key] = data[key][ix_start:ix_end]
+    return data

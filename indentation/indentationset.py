@@ -19,12 +19,41 @@ class IndentationSet:
     """Collection of indentation curves from one or multiple files."""
     data: List[Dict] = field(default_factory=list)
     
-    def __init__(self, file_paths: Union[str, Path, List[Union[str, Path]]]):
-        """Initialize from one or multiple data files."""
+    def __init__(self, file_paths: Union[str, Path, List[Union[str, Path]]], exp_type):
+        """Initialize from one or multiple data files.
+        exp_type: "afm" or "ft"
+        """
         self.data = []
+        self.exp_type = exp_type
         self.append(file_paths)
+
+    def _load_file_afm(self, path: Path) -> List[Dict]:
+        """Internal method to load data from a single file."""
+        z2, force, z1 = np.loadtxt(path, skiprows=18, delimiter=";").T
+
+        # convert to um
+        z1 = z1 * 1e6
+
+        # convert to uN 
+        force = force / 1000
+        
+        curves = []
+        curve_dict = {
+            "raw": {
+                "force": force,
+                "z": -z1,
+                "time": np.zeros(len(force)),
+            },
+            "metadata": {
+                "file": str(path)
+            }
+        }
     
-    def _load_file(self, path: Path) -> List[Dict]:
+        curves.append(curve_dict)
+            
+        return curves
+
+    def _load_file_ft(self, path: Path) -> List[Dict]:
         """Internal method to load data from a single file."""
         # Read the file using pandas
         imported = pd.read_csv(
@@ -72,10 +101,18 @@ class IndentationSet:
             if not path.is_file():
                 raise FileNotFoundError(f"File not found: {path}")
         
-        # Process each file
-        for path in paths:
-            new_curves = self._load_file(path)
-            self.data.extend(new_curves)
+        # Process each file 
+        if self.exp_type == "ft":
+            for path in paths:
+                new_curves = self._load_file_ft(path)
+                self.data.extend(new_curves)
+        elif self.exp_type == "afm":
+            for path in paths:
+                new_curves = self._load_file_afm(path)
+                self.data.extend(new_curves)
+        else:
+            print("Experiment type does not exist. :(")
+
     
     def __len__(self) -> int:
         """Returns the number of curves."""
