@@ -1,0 +1,5 @@
+run this command when you are in your conda env of choice
+
+pip install -e . --use-pep517
+
+then you can use the module from anywhere as long as you are in the conda env you installed it to. any changes here will be available anywhere on the system, as long as the conda env is active.
