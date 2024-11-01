@@ -29,19 +29,57 @@ class IndentationSet:
 
     def _load_file_afm(self, path: Path) -> List[Dict]:
         """Internal method to load data from a single file."""
-        z2, force, z1 = np.loadtxt(path, skiprows=18, delimiter=";").T
+
+        def parse_metadata(file_path):
+            """Helper method for metatdata."""
+            metadata = {}
+            
+            with open(file_path, 'r') as file:
+                for line in file:
+                    # Skip empty lines
+                    if not line.strip():
+                        continue
+                        
+                    # Stop when we hit a non-metadata line
+                    if not line.startswith('#'):
+                        break
+                        
+                    key, value = line[1:].strip().split('=')
+                    
+                    # Handle different cases based on key
+                    if key in ['Spring-Constant', 'Deflection-Sensitivity']:
+                        # Extract number before unit
+                        value = float(''.join(c for c in value if c.isdigit() or c in '.-e'))
+                        
+                    elif key in ['SpecMap-CurIndex', 'SpecMap-PhaseCount']:
+                        value = int(value)
+                        
+                    elif key in ['SpecMap-Dim', 'SpecMap-Size']:
+                        # Convert semicolon-separated values to numpy array
+                        value = np.array([float(x) if '.' in x or 'e' in x else int(x) 
+                                        for x in value.split(';')])
+                        
+                    metadata[key] = value
+            
+            return metadata
+
+        metadata = parse_metadata(path)
+        z1, voltage, _ = np.loadtxt(path, skiprows=18, delimiter=";").T
+
 
         # convert to um
         z1 = z1 * 1e6
 
         # convert to uN 
-        force = force / 1000
+        d_load = metadata["Deflection-Sensitivity"] * voltage 
+        force = 1e6 * metadata["Spring-Constant"] * d_load 
+        w = z1 - d_load
         
         curves = []
         curve_dict = {
             "raw": {
                 "force": force,
-                "z": -z1,
+                "z": -w,
                 "time": np.zeros(len(force)),
             },
             "metadata": {
