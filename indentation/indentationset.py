@@ -70,7 +70,7 @@ class IndentationSet:
         # convert to um
         z1 = z1 * 1e6
 
-        # convert to uN 
+        # convert to uN: first volt to deflection in m, then  
         d_load = metadata["Deflection-Sensitivity"] * voltage 
         force = 1e6 * metadata["Spring-Constant"] * d_load 
         w = z1 - d_load
