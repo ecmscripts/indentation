@@ -21,7 +21,7 @@ class IndentationSet:
     
     def __init__(self, file_paths: Union[str, Path, List[Union[str, Path]]], exp_type):
         """Initialize from one or multiple data files.
-        exp_type: "afm" or "ft"
+        exp_type: "afm" or "ft" or "ft_live"
         """
         self.data = []
         self.exp_type = exp_type
@@ -66,7 +66,7 @@ class IndentationSet:
         curves = []
         # Get unique curve indices in this file
         unique_indices = imported['ix'].unique()
-        
+
         # Process each curve
         for _ in unique_indices:
             # Get data for current curve
@@ -85,6 +85,32 @@ class IndentationSet:
             }
             curves.append(curve_dict)
             
+        return curves
+
+    def _load_file_ft_live(self, path: Path) -> List[Dict]:
+        """Internal method to load data from a single file."""
+        # Read the file using pandas
+        imported = pd.read_csv(
+            path,
+            skiprows=5,
+            names=["t", "x", "y", "z", "f", "fb"],
+            sep=r"\s+"
+        )
+
+        curves = []
+
+        curve_dict = {
+            "raw": {
+                "force": imported['f'].values,
+                "z": imported['z'].values,
+                "time": imported['t'].values,
+            },
+            "metadata": {
+                "file": str(path)
+            }
+        }
+        curves.append(curve_dict)
+
         return curves
     
     def append(self, file_paths: Union[str, Path, List[Union[str, Path]]]) -> None:
@@ -109,6 +135,10 @@ class IndentationSet:
         elif self.exp_type == "afm":
             for path in paths:
                 new_curves = self._load_file_afm(path)
+                self.data.extend(new_curves)
+        elif self.exp_type == "ft_live":
+            for path in paths:
+                new_curves = self._load_file_ft_live(path)
                 self.data.extend(new_curves)
         else:
             print("Experiment type does not exist. :(")
