@@ -27,6 +27,62 @@ class IndentationSet:
         self.exp_type = exp_type
         self.append(file_paths)
 
+    def _load_file_afm_calib(self, path: Path) -> List[Dict]:
+        """Internal method to load data from a single file."""
+
+        def parse_metadata(file_path):
+            """Helper method for metatdata."""
+            metadata = {}
+            
+            with open(file_path, 'r') as file:
+                for line in file:
+                    # Skip empty lines
+                    if not line.strip():
+                        continue
+                        
+                    # Stop when we hit a non-metadata line
+                    if not line.startswith('#'):
+                        break
+                        
+                    key, value = line[1:].strip().split('=')
+                    
+                    # Handle different cases based on key
+                    if key in ['Spring-Constant', 'Deflection-Sensitivity']:
+                        # Extract number before unit
+                        value = float(''.join(c for c in value if c.isdigit() or c in '.-e'))
+                        
+                    elif key in ['SpecMap-CurIndex', 'SpecMap-PhaseCount']:
+                        value = int(value)
+                        
+                    elif key in ['SpecMap-Dim', 'SpecMap-Size']:
+                        # Convert semicolon-separated values to numpy array
+                        value = np.array([float(x) if '.' in x or 'e' in x else int(x) 
+                                        for x in value.split(';')])
+                        
+                    metadata[key] = value
+            
+            return metadata
+
+        metadata = parse_metadata(path)
+        _, voltage, z1 = np.loadtxt(path, skiprows=18, delimiter=";").T
+
+
+        curves = []
+        curve_dict = {
+            "raw": {
+                "force": voltage, # FIX THIS LATER
+                "z": -z1,
+                "time": np.zeros(len(voltage)),
+            },
+            "metadata": {
+                "file": str(path)
+            }
+        }
+    
+        curves.append(curve_dict)
+            
+        return curves
+
     def _load_file_afm(self, path: Path) -> List[Dict]:
         """Internal method to load data from a single file."""
 
@@ -147,6 +203,10 @@ class IndentationSet:
         elif self.exp_type == "afm":
             for path in paths:
                 new_curves = self._load_file_afm(path)
+                self.data.extend(new_curves)
+        elif self.exp_type == "afmcalib":
+            for path in paths:
+                new_curves = self._load_file_afm_calib(path)
                 self.data.extend(new_curves)
         else:
             print("Experiment type does not exist. :(")
