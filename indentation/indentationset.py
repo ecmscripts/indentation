@@ -70,7 +70,7 @@ class IndentationSet:
         curves = []
         curve_dict = {
             "raw": {
-                "force": voltage, # FIX THIS LATER
+                "voltage": voltage, # FIX THIS LATER
                 "z": -z1,
                 "time": np.zeros(len(voltage)),
             },
