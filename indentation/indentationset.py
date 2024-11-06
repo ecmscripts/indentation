@@ -307,11 +307,14 @@ class IndentationSet:
              indices: Union[int, List[int], Literal["all"]], 
              use_processed: bool = True,
              figsize=(12, 6), 
+             linestyle="-",
+             marker=".",
              show_title=True,
              show_legend=True,
              show=True,
              colors=None,
-             ax=None):  # Add ax as an optional parameter
+             ax=None,
+             **kwargs):  # Add ax as an optional parameter
         """Plot force vs. z-position for one or multiple curves."""
         
         # Use the provided axis or create a new one if none is provided
@@ -346,10 +349,12 @@ class IndentationSet:
             ax.plot(
                 -data["z"], 
                 data["force"], 
-                '-', 
                 color=colors[i] if isinstance(colors, np.ndarray) else None,
                 linewidth=2,
-                label=os.path.basename(metadata["file"]).split(".")[0] + "_" + f'{idx+1}'
+                linestyle=linestyle,
+                marker=marker,
+                label=os.path.basename(metadata["file"]).split(".")[0] + "_" + f'{idx+1}',
+                **kwargs
             )
         
         # Add labels and title

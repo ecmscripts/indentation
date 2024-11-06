@@ -1,6 +1,7 @@
 import numpy as np 
 
 
+# all functions should follow the following input/output, where data contains various arrays of the same length, most time, displ and force:
 def do_nothing(data):
     return data
 
@@ -21,7 +22,7 @@ def processing_smooth_data(data, window_size=5):
     return data
 
 
-def crop(data):
+def crop_afm_temp(data):
     force = data["force"].copy()
     displ = data["z"].copy()
 
@@ -31,4 +32,22 @@ def crop(data):
 
     for key in data:
         data[key] = data[key][ix_start:ix_end]
+    return data
+
+
+def crop_start(data, ix_start):
+    force = data["force"].copy()
+    displ = data["z"].copy()
+
+    for key in data:
+        data[key] = data[key][ix_start:]
+    return data
+
+
+def crop_end(data, ix_end):
+    force = data["force"].copy()
+    displ = data["z"].copy()
+
+    for key in data:
+        data[key] = data[key][:ix_end]
     return data
