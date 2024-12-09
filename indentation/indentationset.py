@@ -26,6 +26,7 @@ class IndentationSet:
         self.data = []
         self.exp_type = exp_type
         self.append(file_paths)
+        self.deleted = []
 
     def _load_file_afm_calib(self, path: Path) -> List[Dict]:
         """Internal method to load data from a single file."""
@@ -131,6 +132,8 @@ class IndentationSet:
         d_load = metadata["Deflection-Sensitivity"] * voltage 
         force = 1e6 * metadata["Spring-Constant"] * d_load 
         w = z1 - d_load
+
+        name = "Image" + str(path).split('Image')[-1].split(".txt")[0]
         
         curves = []
         curve_dict = {
@@ -140,12 +143,13 @@ class IndentationSet:
                 "time": np.zeros(len(force)),
             },
             "metadata": {
-                "file": str(path)
+                "file": str(path),
+                "name": name
             }
         }
     
         curves.append(curve_dict)
-            
+
         return curves
         
     
@@ -286,7 +290,42 @@ class IndentationSet:
     def __len__(self) -> int:
         """Returns the number of curves."""
         return len(self.data)
-    
+
+    def delete_curves(self, indices):
+        """Delete a specific curve by index."""
+
+        for index in indices:
+            if index >= len(self):
+                raise IndexError(f"Curve index {index} out of range (0-{len(self)-1})")
+
+        paths = []
+        for i, item in enumerate(self.data):
+            path = item["metadata"]["file"]
+            if i in indices:
+                paths.append(path)
+
+        for i in indices[::-1]:
+            self.data.pop(i)
+
+        if not self.deleted:
+            deletedSet = self.deleted_set(paths)
+        else:
+            self.deleted.append(paths)
+
+
+    def deleted_set(self, paths):
+        deleted = IndentationSet(paths, exp_type = self.exp_type)
+        self.deleted = deleted
+
+        return deleted
+
+    def restore_all(self):
+        if self.exp_type == "ft":
+            self.data = self.deleted.data
+        else:
+            self.data.extend(self.deleted.data)
+
+
     def get_curve(self, index: int) -> Dict:
         """Get a specific curve by index."""
         if index >= len(self):
