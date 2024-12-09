@@ -4,6 +4,18 @@ from scipy.optimize import fmin
 import numpy as np
 from scipy.optimize import fmin
 
+def parameter_defelection_sensitivity(data, keyname="d_sens"):
+    voltage = data["force"]
+    displ   = -data["z"]
+    displ   = displ - displ[0]
+    displ   = 1e9*displ
+
+    d_sens = displ[-1]/voltage[-1]
+    print(d_sens)
+
+    return d_sens, keyname
+    
+
 def parameter_youngs_modulus(data, radius, nu, cutoff, x0=[0.005, 0], show_plot=False, keyname="youngs_modulus"):
     '''
     Enter consistent units:
@@ -53,5 +65,7 @@ def parameter_youngs_modulus(data, radius, nu, cutoff, x0=[0.005, 0], show_plot=
 
     # Optionally, store Emod in the data dictionary under the specified key
     data[keyname] = Emod
+
+    data[keyname] = {"value"}
 
     return Emod, keyname

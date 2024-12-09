@@ -26,6 +26,64 @@ class IndentationSet:
         self.data = []
         self.exp_type = exp_type
         self.append(file_paths)
+        self.deleted = []
+
+    def _load_file_afm_calib(self, path: Path) -> List[Dict]:
+        """Internal method to load data from a single file."""
+
+        def parse_metadata(file_path):
+            """Helper method for metatdata."""
+            metadata = {}
+            
+            with open(file_path, 'r') as file:
+                for line in file:
+                    # Skip empty lines
+                    if not line.strip():
+                        continue
+                        
+                    # Stop when we hit a non-metadata line
+                    if not line.startswith('#'):
+                        break
+                        
+                    key, value = line[1:].strip().split('=')
+                    
+                    # Handle different cases based on key
+                    if key in ['Spring-Constant', 'Deflection-Sensitivity']:
+                        # Extract number before unit
+                        value = float(''.join(c for c in value if c.isdigit() or c in '.-e'))
+                        
+                    elif key in ['SpecMap-CurIndex', 'SpecMap-PhaseCount']:
+                        value = int(value)
+                        
+                    elif key in ['SpecMap-Dim', 'SpecMap-Size']:
+                        # Convert semicolon-separated values to numpy array
+                        value = np.array([float(x) if '.' in x or 'e' in x else int(x) 
+                                        for x in value.split(';')])
+                        
+                    metadata[key] = value
+            
+            return metadata
+
+        metadata = parse_metadata(path)
+        _, voltage, z1 = np.loadtxt(path, skiprows=18, delimiter=";").T
+
+
+        curves = []
+        curve_dict = {
+            "raw": {
+                "force": voltage, # FIX THIS LATER
+                "z": -z1,
+                "time": np.zeros(len(voltage)),
+            },
+            "metadata": {
+                "file": str(path)
+            }
+        }
+    
+        curves.append(curve_dict)
+            
+        return curves
+
 
     def _load_file_afm(self, path: Path) -> List[Dict]:
         """Internal method to load data from a single file."""
@@ -74,6 +132,74 @@ class IndentationSet:
         d_load = metadata["Deflection-Sensitivity"] * voltage 
         force = 1e6 * metadata["Spring-Constant"] * d_load 
         w = z1 - d_load
+
+        name = "Image" + str(path).split('Image')[-1].split(".txt")[0]
+        
+        curves = []
+        curve_dict = {
+            "raw": {
+                "force": force,
+                "z": -w,
+                "time": np.zeros(len(force)),
+            },
+            "metadata": {
+                "file": str(path),
+                "name": name
+            }
+        }
+    
+        curves.append(curve_dict)
+
+        return curves
+        
+    
+    def _load_file_fluidfm(self, path: Path) -> List[Dict]:
+        """Internal method to load data from a single file."""
+
+        def parse_metadata(file_path):
+            """Helper method for metatdata."""
+            metadata = {}
+            
+            with open(file_path, 'r') as file:
+                for line in file:
+                    # Skip empty lines
+                    if not line.strip():
+                        continue
+                        
+                    # Stop when we hit a non-metadata line
+                    if not line.startswith('#'):
+                        break
+                        
+                    key, value = line[1:].strip().split('=')
+                    
+                    # Handle different cases based on key
+                    if key in ['Spring-Constant', 'Deflection-Sensitivity']:
+                        # Extract number before unit
+                        value = float(''.join(c for c in value if c.isdigit() or c in '.-e'))
+                        
+                    elif key in ['SpecMap-CurIndex', 'SpecMap-PhaseCount']:
+                        value = int(value)
+                        
+                    elif key in ['SpecMap-Dim', 'SpecMap-Size']:
+                        # Convert semicolon-separated values to numpy array
+                        value = np.array([float(x) if '.' in x or 'e' in x else int(x) 
+                                        for x in value.split(';')])
+                        
+                    metadata[key] = value
+            
+            return metadata
+
+        metadata = parse_metadata(path)
+        z1, voltage, _, _, _, _ = np.loadtxt(path, skiprows=18, delimiter=";").T
+
+
+        # convert to um
+        z1 = z1 * 1e6
+
+        # convert to uN: first volt to deflection in m, then  
+        d_load = metadata["Deflection-Sensitivity"] * voltage 
+        force = 1e6 * metadata["Spring-Constant"] * d_load 
+        w = z1 - d_load
         
         curves = []
         curve_dict = {
@@ -91,6 +217,7 @@ class IndentationSet:
             
         return curves
 
+        
     def _load_file_ft(self, path: Path) -> List[Dict]:
         """Internal method to load data from a single file."""
         # Read the file using pandas
@@ -148,6 +275,14 @@ class IndentationSet:
             for path in paths:
                 new_curves = self._load_file_afm(path)
                 self.data.extend(new_curves)
+        elif self.exp_type == "afmcalib":
+            for path in paths:
+                new_curves = self._load_file_afm_calib(path)
+                self.data.extend(new_curves)
+        elif self.exp_type == "fluidfm":
+            for path in paths:
+                new_curves = self._load_file_fluidfm(path)
+                self.data.extend(new_curves)
         else:
             print("Experiment type does not exist. :(")
 
@@ -155,7 +290,42 @@ class IndentationSet:
     def __len__(self) -> int:
         """Returns the number of curves."""
         return len(self.data)
-    
+
+    def delete_curves(self, indices):
+        """Delete a specific curve by index."""
+
+        for index in indices:
+            if index >= len(self):
+                raise IndexError(f"Curve index {index} out of range (0-{len(self)-1})")
+
+        paths = []
+        for i, item in enumerate(self.data):
+            path = item["metadata"]["file"]
+            if i in indices:
+                paths.append(path)
+
+        for i in indices[::-1]:
+            self.data.pop(i)
+
+        if not self.deleted:
+            deletedSet = self.deleted_set(paths)
+        else:
+            self.deleted.append(paths)
+
+
+    def deleted_set(self, paths):
+        deleted = IndentationSet(paths, exp_type = self.exp_type)
+        self.deleted = deleted
+
+        return deleted
+
+    def restore_all(self):
+        if self.exp_type == "ft":
+            self.data = self.deleted.data
+        else:
+            self.data.extend(self.deleted.data)
+
+
     def get_curve(self, index: int) -> Dict:
         """Get a specific curve by index."""
         if index >= len(self):
@@ -247,11 +417,14 @@ class IndentationSet:
              indices: Union[int, List[int], Literal["all"]], 
              use_processed: bool = True,
              figsize=(12, 6), 
+             linestyle="-",
+             marker=".",
              show_title=True,
              show_legend=True,
              show=True,
              colors=None,
-             ax=None):  # Add ax as an optional parameter
+             ax=None,
+             **kwargs):  # Add ax as an optional parameter
         """Plot force vs. z-position for one or multiple curves."""
         
         # Use the provided axis or create a new one if none is provided
@@ -286,10 +459,12 @@ class IndentationSet:
             ax.plot(
                 -data["z"], 
                 data["force"], 
-                '-', 
                 color=colors[i] if isinstance(colors, np.ndarray) else None,
                 linewidth=2,
-                label=os.path.basename(metadata["file"]).split(".")[0] + "_" + f'{idx+1}'
+                linestyle=linestyle,
+                marker=marker,
+                label=os.path.basename(metadata["file"]).split(".")[0] + "_" + f'{idx+1}',
+                **kwargs
             )
         
         # Add labels and title
