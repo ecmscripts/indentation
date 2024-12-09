@@ -28,8 +28,11 @@ def crop_afm_temp(data):
 
     force = force[:-10]
     ix_end = np.argmax(force)
-    ix_start = int(len(force)/2)
-
+    ix_start = 0
+    #ix_start = int(len(force)/2)
+ 
+    ix_end = np.argmax(np.diff(displ)) - 1
+    
     for key in data:
         data[key] = data[key][ix_start:ix_end]
     return data

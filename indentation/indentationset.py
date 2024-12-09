@@ -186,7 +186,7 @@ class IndentationSet:
             return metadata
 
         metadata = parse_metadata(path)
-        _, voltage, z1, _, _, _ = np.loadtxt(path, skiprows=18, delimiter=";").T
+        z1, voltage, _, _, _, _ = np.loadtxt(path, skiprows=18, delimiter=";").T
 
 
         # convert to um
