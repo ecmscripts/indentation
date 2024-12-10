@@ -129,8 +129,9 @@ class IndentationSet:
         z1 = z1 * 1e6
 
         # convert to uN: first volt to deflection in m, then  
-        d_load = metadata["Deflection-Sensitivity"] * voltage 
-        force = 1e6 * metadata["Spring-Constant"] * d_load 
+        d_load = metadata["Deflection-Sensitivity"] * voltage   # deflection of the cantilever in m
+        force = 1e6 * metadata["Spring-Constant"] * d_load      # deflection of the cantilever in uN
+        defl = 1e6 * d_load                                     # deflection of the cantilever in um
         w = z1 - d_load
 
         name = "Image" + str(path).split('Image')[-1].split(".txt")[0]
@@ -138,6 +139,7 @@ class IndentationSet:
         curves = []
         curve_dict = {
             "raw": {
+                "deflection": defl,
                 "force": force,
                 "z": -w,
                 "time": np.zeros(len(force)),
@@ -322,8 +324,10 @@ class IndentationSet:
     def restore_all(self):
         if self.exp_type == "ft":
             self.data = self.deleted.data
+            self.deleted = []
         else:
             self.data.extend(self.deleted.data)
+            self.deleted = []
 
 
     def get_curve(self, index: int) -> Dict:
@@ -424,6 +428,7 @@ class IndentationSet:
              show=True,
              colors=None,
              ax=None,
+             units="micro",
              **kwargs):  # Add ax as an optional parameter
         """Plot force vs. z-position for one or multiple curves."""
         
@@ -455,21 +460,38 @@ class IndentationSet:
             curve = self.get_curve(idx)
             data = curve.get("processed" if use_processed and "processed" in curve else "raw")
             metadata = curve.get("metadata")
-            
-            ax.plot(
-                -data["z"], 
-                data["force"], 
-                color=colors[i] if isinstance(colors, np.ndarray) else None,
-                linewidth=2,
-                linestyle=linestyle,
-                marker=marker,
-                label=os.path.basename(metadata["file"]).split(".")[0] + "_" + f'{idx+1}',
-                **kwargs
-            )
+
+            if units == "micro":
+                ax.plot(
+                    -data["z"],
+                    data["force"],
+                    color=colors[i] if isinstance(colors, np.ndarray) else None,
+                    linewidth=2,
+                    linestyle=linestyle,
+                    marker=marker,
+                    label=os.path.basename(metadata["file"]).split(".")[0] + "_" + f'{idx+1}',
+                    **kwargs
+                )
+            elif units == "nano":
+                ax.plot(
+                    -data["z"] * 1e3,
+                    data["force"] * 1e3,
+                    color=colors[i] if isinstance(colors, np.ndarray) else None,
+                    linewidth=2,
+                    linestyle=linestyle,
+                    marker=marker,
+                    label=os.path.basename(metadata["file"]).split(".")[0] + "_" + f'{idx + 1}',
+                    **kwargs
+                )
+
         
         # Add labels and title
-        ax.set_xlabel(r'displacement [$\mu$m]')
-        ax.set_ylabel(r'force [$\mu$N]')
+        if units == "micro":
+            ax.set_xlabel(r'displacement [$\mu$m]')
+            ax.set_ylabel(r'force [$\mu$N]')
+        elif units == "nano":
+            ax.set_xlabel(r'displacement [nm]')
+            ax.set_ylabel(r'force [nN]')
         if show_title:
             ax.set_title(f'Force vs. Z Position - Multiple Curves\n{len(indices_to_plot)} curves shown')
         

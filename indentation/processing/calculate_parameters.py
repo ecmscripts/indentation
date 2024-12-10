@@ -65,6 +65,7 @@ def parameter_youngs_modulus(data, radius, nu, cutoff, x0=[0.005, 0], show_plot=
 
     # Optionally, store Emod in the data dictionary under the specified key
     data[keyname] = Emod
+    print(Emod)
 
     data[keyname] = {"value"}
 
