@@ -1,8 +1,19 @@
 import numpy as np 
 from matplotlib import pyplot as plt
+import plotly.express as px
 
 from typing import List
 from typing import Dict, Any
+
+from indentation.indentationset import IndentationSet
+
+
+def plot_hertzian_fit(force, disp, hertz_fit, z, E_mod):
+    fig = px.scatter(x=disp, y=force)
+    fig.add_scatter(x=z, y=hertz_fit, name="E = " + str(round(E_mod, 2)) + " kPa")
+    fig.update_layout(xaxis_title="Displacement [um]", yaxis_title=r'Force [uN]', width=800, height=600, font=dict(size=20))
+    fig.show()
+
 
 def plot_mean_force_curves(*indentation_sets: 'IndentationSet',
                           labels: List[str] = None,

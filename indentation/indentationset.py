@@ -67,7 +67,6 @@ class IndentationSet:
         metadata = parse_metadata(path)
         _, voltage, z1 = np.loadtxt(path, skiprows=18, delimiter=";").T
 
-
         curves = []
         curve_dict = {
             "raw": {

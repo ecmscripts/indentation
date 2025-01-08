@@ -1,8 +1,6 @@
 import numpy as np
 from scipy.optimize import fmin
-
-import numpy as np
-from scipy.optimize import fmin
+from indentation.processing import plotting
 
 def parameter_defelection_sensitivity(data, keyname="d_sens"):
     voltage = data["force"]
@@ -16,7 +14,52 @@ def parameter_defelection_sensitivity(data, keyname="d_sens"):
     return d_sens, keyname
     
 
-def parameter_youngs_modulus(data, radius, nu, cutoff, x0=[0.005, 0], show_plot=False, keyname="youngs_modulus"):
+def parameter_youngs_modulus(data, radius, nu, cutoff, x0=[50000], show_plot=False, keyname="youngs_modulus"):
+    def hertzian_force(E, R, nu, z):
+        hertz_F = 4.0 / 3.0 * E * np.sqrt(R) / (1 - nu ** 2) * np.power(z, 3.0 / 2.0)
+
+        return hertz_F
+
+    def sse(param, R, nu, F, z, cutoff):
+        E = param
+
+        hertz_F = hertzian_force(E, R, nu, z)
+        sse_value = np.sum((force - hertz_F)**2.0)
+
+        return sse_value
+
+    F = data["force"].copy()  # Force in µN (make positive)
+    disp = -data["z"].copy()  # Displacement in µm
+
+    ix = np.where(disp > (cutoff / 100) * radius)[0]
+
+    if len(ix) == 0:
+        ix = len(F)
+    else:
+        ix = ix[0]
+
+    force = F[:ix]
+    z = disp[:ix]
+
+    result = fmin(sse, x0, args=(radius, nu, force, z, cutoff), disp=False)
+
+    E_mod = result[0]*1000
+
+    hertz_F = hertzian_force(result[0], radius, nu, z)
+
+    if show_plot:
+        plotting.plot_hertzian_fit(F, disp, hertz_F, z, E_mod)
+
+    data[keyname] = E_mod
+
+
+    data[keyname] = {"value"}
+
+
+    return E_mod, keyname
+
+
+def parameter_youngs_modulus_2(data, radius, nu, cutoff, x0=[0.005, 0], show_plot=False, keyname="youngs_modulus"):
     '''
     Enter consistent units:
     - radius in µm (micrometers)
