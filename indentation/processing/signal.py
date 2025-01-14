@@ -38,6 +38,19 @@ def crop_afm_temp(data):
     return data
 
 
+def crop_ft_temp(data):
+    force = data["force"].copy()
+    displ = data["z"].copy()
+
+    force = force[:-10]
+    ix_end = np.argmax(force)
+    ix_start = 0
+    
+    for key in data:
+        data[key] = data[key][ix_start:ix_end]
+    return data
+
+
 def crop_start(data, ix_start):
     force = data["force"].copy()
     displ = data["z"].copy()
