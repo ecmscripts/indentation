@@ -8,7 +8,9 @@ def parameter_defelection_sensitivity(data, keyname="d_sens"):
     displ   = displ - displ[0]
     displ   = 1e9*displ
 
-    d_sens = displ[-1]/voltage[-1]
+    ix_end = int(len(voltage) / 2.0)
+
+    d_sens = displ[ix_end]/voltage[ix_end]
     print(d_sens)
 
     return d_sens, keyname
@@ -16,7 +18,7 @@ def parameter_defelection_sensitivity(data, keyname="d_sens"):
 
 def parameter_youngs_modulus(data, radius, nu, cutoff, x0=[50000], show_plot=False, keyname="youngs_modulus"):
     def hertzian_force(E, R, nu, z):
-        hertz_F = 4.0 / 3.0 * E * np.sqrt(R) / (1 - nu ** 2) * np.power(z, 3.0 / 2.0)
+        hertz_F = 4.0 / 3.0 * E * np.sqrt(R) / (1 - nu ** 2) * np.sign(z) * np.power(np.abs(z), 3.0 / 2.0)
 
         return hertz_F
 

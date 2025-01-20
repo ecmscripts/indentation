@@ -120,17 +120,40 @@ class IndentationSet:
             
             return metadata
 
+        
+        def parse_file(file_path):
+            with open(file_path, 'r') as file:
+                content = file.read()
+
+
+            if '#Spec-Name=Spec backward' in content:
+                forward, _ = content.split('#Spec-Name=Spec backward')
+
+            forward = forward.splitlines()
+            forward = np.array(forward[18:-2])
+            forward = [[float(value) for value in row.split(";")] for row in forward]
+            forward = np.array(forward)
+
+            return forward
+
+        
         metadata = parse_metadata(path)
-        z1, voltage, _ = np.loadtxt(path, skiprows=18, delimiter=";").T
+        forward = parse_file(path)
+        #z1, voltage, _ = np.loadtxt(path, skiprows=18, delimiter=";").T
 
+        z1 = forward[:, 0]
+        #z1 = z1[::-1] - z1[0] # flips the z_piezo so that it increases with time towards the surface
+        voltage = forward[:, 1]
 
-        # convert to um
-        z1 = z1 * 1e6
-
-        # convert to uN: first volt to deflection in m, then  
+        defl_sens = metadata["Deflection-Sensitivity"]
+        k = metadata["Spring-Constant"]
+        
         d_load = metadata["Deflection-Sensitivity"] * voltage   # deflection of the cantilever in m
-        force = 1e6 * metadata["Spring-Constant"] * d_load      # deflection of the cantilever in uN
-        defl = 1e6 * d_load                                     # deflection of the cantilever in um
+        force = metadata["Spring-Constant"] * d_load            # deflection of the cantilever in N
+        print(f"deflection sensitivity: {defl_sens}")
+        print(f"spring constant: {k}")
+        #w = np.abs(z1) - np.abs(d_load)
+        #w = z1 + d_load
         w = z1 - d_load
 
         name = "Image" + str(path).split('Image')[-1].split(".txt")[0]
@@ -138,9 +161,10 @@ class IndentationSet:
         curves = []
         curve_dict = {
             "raw": {
-                "deflection": defl,
-                "force": force,
-                "z": -w,
+                "z_piezo": z1 * 1e6,
+                "deflection": d_load * 1e6,
+                "force": force * 1e6,
+                "z": -w * 1e6,
                 "time": np.zeros(len(force)),
             },
             "metadata": {

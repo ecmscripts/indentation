@@ -15,7 +15,7 @@ def processing_shift_to_zero(data):
     return data
 
 
-def processing_smooth_data(data, window_size=5):
+def processing_smooth_data(data, window_size=20):
     """Apply a simple moving average to smooth the data."""
     data['force'] = np.convolve(data['force'], np.ones(window_size)/window_size, mode='valid')
     data['z'] = data['z'][:len(data['force'])]  # Adjust z to match the length
