@@ -48,7 +48,7 @@ def findContact_blackMagic(data, N_int=1000, padding_fraction=0.02):
         
     # Extract and copy data
     force_r = data["force"].copy()
-    displ_r = -data["z"].copy()
+    displ_r = data["z"].copy()
     
     # Interpolate data and normalize
     displ = np.linspace(displ_r[0], displ_r[-1], N_int)

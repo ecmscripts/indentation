@@ -4,7 +4,7 @@ from indentation.processing import plotting
 
 def parameter_defelection_sensitivity(data, keyname="d_sens"):
     voltage = data["force"]
-    displ   = -data["z"]
+    displ   = data["z"]
     displ   = displ - displ[0]
     displ   = 1e9*displ
 
@@ -31,7 +31,7 @@ def parameter_youngs_modulus(data, radius, nu, cutoff, x0=[50000], show_plot=Fal
         return sse_value
 
     F = data["force"].copy()  # Force in µN (make positive)
-    disp = -data["z"].copy()  # Displacement in µm
+    disp = data["z"].copy()  # Displacement in µm
 
     ix = np.where(disp > (cutoff / 100) * radius)[0]
 

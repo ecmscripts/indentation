@@ -164,7 +164,7 @@ class IndentationSet:
                 "z_piezo": z1 * 1e6,
                 "deflection": d_load * 1e6,
                 "force": force * 1e6,
-                "z": -w * 1e6,
+                "z": w * 1e6,
                 "time": np.zeros(len(force)),
             },
             "metadata": {
@@ -486,7 +486,7 @@ class IndentationSet:
 
             if units == "micro":
                 ax.plot(
-                    -data["z"],
+                    data["z"],
                     data["force"],
                     color=colors[i] if isinstance(colors, np.ndarray) else None,
                     linewidth=2,
@@ -497,7 +497,7 @@ class IndentationSet:
                 )
             elif units == "nano":
                 ax.plot(
-                    -data["z"] * 1e3,
+                    data["z"] * 1e3,
                     data["force"] * 1e3,
                     color=colors[i] if isinstance(colors, np.ndarray) else None,
                     linewidth=2,
@@ -510,10 +510,10 @@ class IndentationSet:
         
         # Add labels and title
         if units == "micro":
-            ax.set_xlabel(r'displacement [$\mu$m]')
+            ax.set_xlabel(r'tip-sample separation [$\mu$m]')
             ax.set_ylabel(r'force [$\mu$N]')
         elif units == "nano":
-            ax.set_xlabel(r'displacement [nm]')
+            ax.set_xlabel(r'tip-sample separation [nm]')
             ax.set_ylabel(r'force [nN]')
         if show_title:
             ax.set_title(f'Force vs. Z Position - Multiple Curves\n{len(indices_to_plot)} curves shown')
@@ -552,7 +552,7 @@ class IndentationSet:
             fig = ax.get_figure()  # Ensure fig is defined when an existing ax is used
 
         # Calculate -z for plotting
-        z_neg = -np.array(self.mean["z"])
+        z_neg = np.array(self.mean["z"])
         force_mean = np.array(self.mean["force"])
         force_std = np.array(self.mean["force_std"])
 
