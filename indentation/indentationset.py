@@ -363,6 +363,7 @@ class IndentationSet:
         """Process all curves using a sequence of functions."""
         for curve in self.data:
             processed_data = {
+                            "deflection": np.copy(curve["raw"]["deflection"]),
                             "force": np.copy(curve["raw"]["force"]),
                             "z": np.copy(curve["raw"]["z"]),
                             "time": np.copy(curve["raw"]["time"]) if "time" in curve["raw"] else None}

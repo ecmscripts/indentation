@@ -17,6 +17,17 @@ def findContact_minimum(data):
         data_copy[key] = data_copy[key][ix_cut:]
         data_copy[key] -= data_copy[key][0]
     return data_copy
+
+
+def findContact_deflection(data):
+    data_copy = data.copy()
+    ix_cut = np.where(data_copy["deflection"] > 0.01)[0][0]
+    print(ix_cut)
+    #ix_cut = np.argmin(data_copy["force"])
+    for key in ["time", "z", "force"]:
+        data_copy[key] = data_copy[key][ix_cut:]
+        data_copy[key] -= data_copy[key][0]
+    return data_copy
     
 
 def findContact_blackMagic_CNN(data, net, N):
