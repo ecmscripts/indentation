@@ -127,22 +127,25 @@ class IndentationSet:
 
 
             if '#Spec-Name=Spec backward' in content:
-                forward, _ = content.split('#Spec-Name=Spec backward')
+                forward, backward = content.split('#Spec-Name=Spec backward')
 
             forward = forward.splitlines()
             forward = np.array(forward[18:-2])
             forward = [[float(value) for value in row.split(";")] for row in forward]
             forward = np.array(forward)
 
-            return forward
+            backward = backward.splitlines()
+            backward = np.array(backward[4:])
+            backward = [[float(value) for value in row.split(";")] for row in backward]
+            backward = np.array(backward)
+
+            return forward, backward
 
         
         metadata = parse_metadata(path)
-        forward = parse_file(path)
-        #z1, voltage, _ = np.loadtxt(path, skiprows=18, delimiter=";").T
+        forward, backward = parse_file(path)
 
         z1 = forward[:, 0]
-        #z1 = z1[::-1] - z1[0] # flips the z_piezo so that it increases with time towards the surface
         voltage = forward[:, 1]
 
         defl_sens = metadata["Deflection-Sensitivity"]
@@ -150,11 +153,21 @@ class IndentationSet:
         
         d_load = metadata["Deflection-Sensitivity"] * voltage   # deflection of the cantilever in m
         force = metadata["Spring-Constant"] * d_load            # deflection of the cantilever in N
+        w = z1 - d_load
+
         print(f"deflection sensitivity: {defl_sens}")
         print(f"spring constant: {k}")
-        #w = np.abs(z1) - np.abs(d_load)
-        #w = z1 + d_load
-        w = z1 - d_load
+
+        # retraction curve
+        z1_retract = backward[:, 0]
+        voltage_retract = backward[:, 1]
+        
+        z1_retract = z1_retract[::-1]
+        voltage_retract = voltage_retract[::-1]
+
+        d_load_retract = metadata["Deflection-Sensitivity"] * voltage_retract
+        force_retract = metadata["Spring-Constant"] * d_load_retract
+        w_retract = z1_retract - d_load_retract
 
         name = "Image" + str(path).split('Image')[-1].split(".txt")[0]
         
@@ -166,6 +179,8 @@ class IndentationSet:
                 "force": force * 1e6,
                 "z": w * 1e6,
                 "time": np.zeros(len(force)),
+                "force_retract": force_retract * 1e6,
+                "z_retract": w_retract * 1e6
             },
             "metadata": {
                 "file": str(path),
@@ -214,24 +229,41 @@ class IndentationSet:
             
             return metadata
 
+        def parse_file(file_path):
+            with open(file_path, 'r') as file:
+                content = file.read()
+
+
+            if '#Spec-Name=Spec backward' in content:
+                forward, _ = content.split('#Spec-Name=Spec backward')
+
+            forward = forward.splitlines()
+            forward = np.array(forward[18:-2])
+            forward = [[float(value) for value in row.split(";")] for row in forward]
+            forward = np.array(forward)
+
+            return forward
+        
+
         metadata = parse_metadata(path)
-        z1, voltage, _, _, _, _ = np.loadtxt(path, skiprows=18, delimiter=";").T
+        #z1, voltage, _, _, _, _ = np.loadtxt(path, skiprows=18, delimiter=";").T
 
+        forward = parse_file(path)
 
-        # convert to um
-        z1 = z1 * 1e6
-
-        # convert to uN: first volt to deflection in m, then  
+        z1 = forward[:, 0]
+        voltage = forward[:, 1]
+  
         d_load = metadata["Deflection-Sensitivity"] * voltage 
-        force = 1e6 * metadata["Spring-Constant"] * d_load 
+        force = metadata["Spring-Constant"] * d_load 
         w = z1 - d_load
         
         curves = []
         curve_dict = {
             "raw": {
-                "force": force,
-                "z": -w,
+                "force": force * 1e6,
+                "z": w * 1e6,
                 "time": np.zeros(len(force)),
+                "deflection": np.zeros(len(force))
             },
             "metadata": {
                 "file": str(path)
@@ -266,7 +298,8 @@ class IndentationSet:
             curve_dict = {
                 "raw": {
                     "force": curve_data['f'].values,
-                    "z": curve_data['z'].values,
+                    "deflection": np.zeros(len(curve_data['f'])),
+                    "z": -curve_data['z'].values,
                     "time": curve_data['t'].values,
                 },
                 "metadata": {
@@ -351,7 +384,6 @@ class IndentationSet:
         else:
             self.data.extend(self.deleted.data)
             self.deleted = []
-
 
     def get_curve(self, index: int) -> Dict:
         """Get a specific curve by index."""

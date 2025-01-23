@@ -14,22 +14,23 @@ def parameter_defelection_sensitivity(data, keyname="d_sens"):
     print(d_sens)
 
     return d_sens, keyname
+
+
+def hertzian_force(E, R, nu, z):
+    hertz_F = 4.0 / 3.0 * E * np.sqrt(R) / (1 - nu ** 2) * np.sign(z) * np.power(np.abs(z), 3.0 / 2.0)
     
+    return hertz_F
+
 
 def parameter_youngs_modulus(data, radius, nu, cutoff, x0=[50000], show_plot=False, keyname="youngs_modulus"):
-    def hertzian_force(E, R, nu, z):
-        hertz_F = 4.0 / 3.0 * E * np.sqrt(R) / (1 - nu ** 2) * np.sign(z) * np.power(np.abs(z), 3.0 / 2.0)
-
-        return hertz_F
-
     def sse(param, R, nu, F, z, cutoff):
         E = param
 
         hertz_F = hertzian_force(E, R, nu, z)
         sse_value = np.sum((force - hertz_F)**2.0)
-
+        
         return sse_value
-
+    
     F = data["force"].copy()  # Force in µN (make positive)
     disp = data["z"].copy()  # Displacement in µm
 
@@ -49,16 +50,81 @@ def parameter_youngs_modulus(data, radius, nu, cutoff, x0=[50000], show_plot=Fal
 
     hertz_F = hertzian_force(result[0], radius, nu, z)
 
+    r_2 = calculate_r_squared(F[:ix], hertz_F)
+
     if show_plot:
-        plotting.plot_hertzian_fit(F, disp, hertz_F, z, E_mod)
+        plotting.plot_hertzian_fit(F, disp, hertz_F, z, E_mod, r_2)
 
     data[keyname] = E_mod
-
-
     data[keyname] = {"value"}
 
+    data["r_squared"] = r_2
+    data["r_squared"] = {"value"}
 
     return E_mod, keyname
+
+
+def parameter_r_squared(data, radius, nu, cutoff, x0=[5000], keyname="r_squared"):
+    def sse(param, R, nu, F, z, cutoff):
+        E = param
+
+        hertz_F = hertzian_force(E, R, nu, z)
+        sse_value = np.sum((force - hertz_F)**2.0)
+        
+        return sse_value
+    
+    F = data["force"].copy()  # Force in µN (make positive)
+    disp = data["z"].copy()  # Displacement in µm
+
+    ix = np.where(disp > (cutoff / 100) * radius)[0]
+
+    if len(ix) == 0:
+        ix = len(F)
+    else:
+        ix = ix[0]
+
+    force = F[:ix]
+    z = disp[:ix]
+
+    result = fmin(sse, x0, args=(radius, nu, force, z, cutoff), disp=False)
+
+    E_mod = result[0]*1000
+
+    hertz_F = hertzian_force(result[0], radius, nu, z)
+
+    r_2 = calculate_r_squared(F[:ix], hertz_F)
+
+    data["r_squared"] = r_2
+    data["r_squared"] = {"value"}
+    
+    return r_2, keyname
+
+
+def calculate_r_squared(y_actual, y_fitted):
+    """
+    Calculate the coefficient of determination (R^2) between actual and fitted data.
+
+    Parameters:
+        y_actual (array-like): The actual data points.
+        y_fitted (array-like): The fitted (predicted) data points.
+
+    Returns:
+        float: The R^2 value.
+    """
+    y_actual = np.array(y_actual)
+    y_fitted = np.array(y_fitted)
+
+    # Calculate the mean of actual values
+    y_mean = np.mean(y_actual)
+
+    # Calculate SS_res and SS_tot
+    ss_res = np.sum((y_actual - y_fitted) ** 2)
+    ss_tot = np.sum((y_actual - y_mean) ** 2)
+
+    # Calculate R^2
+    r_squared = 1 - (ss_res / ss_tot)
+    
+    return r_squared
 
 
 def parameter_youngs_modulus_2(data, radius, nu, cutoff, x0=[0.005, 0], show_plot=False, keyname="youngs_modulus"):
@@ -114,4 +180,5 @@ def parameter_youngs_modulus_2(data, radius, nu, cutoff, x0=[0.005, 0], show_plo
 
     data[keyname] = {"value"}
 
+    
     return Emod, keyname
