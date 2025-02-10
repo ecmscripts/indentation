@@ -22,6 +22,21 @@ def processing_smooth_data(data, window_size=20):
     return data
 
 
+def get_forward_curve(data):
+    labels = data['labels'].copy()
+    indices = np.where(labels == 'f')[0]
+    last_index = indices[-1] if indices.size > 0 else -1
+
+    force = data["force"].copy()
+    displ = data["z"].copy()
+
+    for key in data:
+        if data[key] is not None:
+            data[key] = data[key][0:last_index]
+
+    return data
+    
+
 def crop_afm_temp(data):
     force = data["force"].copy()
     displ = data["z"].copy()

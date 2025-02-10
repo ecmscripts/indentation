@@ -9,10 +9,19 @@ from indentation.indentationset import IndentationSet
 
 
 def plot_hertzian_fit(force, disp, hertz_fit, z, E_mod, r_2):
-    fig = px.scatter(x=disp, y=force)
-    fig.add_scatter(x=z, y=hertz_fit, name="E = " + str(round(E_mod, 2)) + " kPa")
-    fig.update_layout(xaxis_title="Displacement [um]", yaxis_title=r'Force [uN]', title="R^2 = " + str(round(r_2, 2)), width=800, height=600, font=dict(size=20))
-    fig.show()
+    # fig = px.scatter(x=disp, y=force)
+    # fig.add_scatter(x=z, y=hertz_fit, name="E = " + str(round(E_mod, 2)) + " kPa")
+    # fig.update_layout(xaxis_title="Displacement [um]", yaxis_title=r'Force [uN]', title="R^2 = " + str(round(r_2, 2)), font=dict(size=20))
+    # fig.show()
+
+    plt.figure()
+    plt.plot(disp, force, 'b*')
+    plt.plot(z, hertz_fit, 'r-')
+    plt.legend(['Data', f"E = {round(E_mod, 2)} kPa"])
+    plt.xlabel('Displacement [um]')
+    plt.ylabel('Force [uN]')
+    plt.title(f"R-squared = {str(round(r_2, 2))}")
+    plt.show()
 
 
 def plot_mean_force_curves(*indentation_sets: 'IndentationSet',
@@ -155,13 +164,12 @@ def plot_curve_parameters_bar(*indentation_sets: 'IndentationSet',
         
         bars = []  # Store bars for this parameter
         for idx, indentation_set in enumerate(indentation_sets):
-            # Extract parameter values from all curves (except those removed based on their R^2 value)
-            r_2 = [curve["r_squared"] for curve in indentation_set.data if "r_sequared" in curve]
             values = [curve[param] for curve in indentation_set.data 
                       if param in curve]
 
-            print(r_2)
-            print(values)
+            param_values = [item[0] for item in values]
+            r_2 = [item[1] for item in values]
+            values = [item[0] for item in values if (item[1] >= 0.5 and item[0] > 0)]
             
             if not values:
                 continue

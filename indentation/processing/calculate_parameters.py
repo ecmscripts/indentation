@@ -6,14 +6,19 @@ def parameter_defelection_sensitivity(data, keyname="d_sens"):
     voltage = data["force"]
     displ   = data["z"]
     displ   = displ - displ[0]
-    displ   = 1e9*displ
+    #displ   = 1e9*displ
 
     ix_end = int(len(voltage) / 2.0)
 
     d_sens = displ[ix_end]/voltage[ix_end]
     print(d_sens)
 
-    return d_sens, keyname
+    r_2 = calculate_r_squared(displ[:ix_end], voltage[:ix_end] * d_sens)
+
+    print(f"r_square: {r_2}")
+    print(f"d_sens: {d_sens}")
+
+    return [d_sens, r_2], keyname
 
 
 def hertzian_force(E, R, nu, z):
@@ -55,13 +60,10 @@ def parameter_youngs_modulus(data, radius, nu, cutoff, x0=[50000], show_plot=Fal
     if show_plot:
         plotting.plot_hertzian_fit(F, disp, hertz_F, z, E_mod, r_2)
 
-    data[keyname] = E_mod
-    data[keyname] = {"value"}
+    data[keyname] = [E_mod, r_2]
+    #data[keyname] = {"value"}
 
-    data["r_squared"] = r_2
-    data["r_squared"] = {"value"}
-
-    return E_mod, keyname
+    return [E_mod, r_2], keyname
 
 
 def parameter_r_squared(data, radius, nu, cutoff, x0=[5000], keyname="r_squared"):

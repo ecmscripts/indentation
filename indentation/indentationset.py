@@ -14,6 +14,133 @@ plt.rcParams.update({
     "text.latex.preamble": r"\usepackage{amsmath}"
 })
 
+
+def parse_metadata(file_path):
+    """Helper method for metatdata."""
+    metadata = {}
+
+    with open(file_path, 'r') as file:
+        for line in file:
+            # Skip empty lines
+            if not line.strip():
+                continue
+
+            # Stop when we hit a non-metadata line
+            if not line.startswith('#'):
+                break
+
+            key, value = line[1:].strip().split('=')
+
+            # Handle different cases based on key
+            if key in ['Spring-Constant', 'Deflection-Sensitivity']:
+                # Extract number before unit
+                value = float(''.join(c for c in value if c.isdigit() or c in '.-e'))
+
+            elif key in ['SpecMap-CurIndex', 'SpecMap-PhaseCount']:
+                value = int(value)
+
+            elif key in ['SpecMap-Dim', 'SpecMap-Size']:
+                # Convert semicolon-separated values to numpy array
+                value = np.array([float(x) if '.' in x or 'e' in x else int(x)
+                                  for x in value.split(';')])
+
+            metadata[key] = value
+
+    return metadata
+
+
+def parse_file(file_path):
+    data_blocks = []
+    labels = []
+    current_block = []
+    comment_block = []
+    last_label = None
+    data_mode = False
+
+    with open(file_path, 'r') as file:
+        for line in file:
+            line = line.strip()
+
+            if not line:  # ignore blank lines
+                continue
+
+            if line.startswith("#"):  # comment block
+                data_mode = False
+                comment_block.append(line[1:].strip())
+            else:
+                if not data_mode and comment_block:
+                    extracted_label = extract_description(comment_block, last_label)
+                    if extracted_label:
+                        labels.append(extracted_label)
+                        last_label = extracted_label
+
+                        if current_block:
+                            data_blocks.append(process_data_block(current_block))
+                        current_block = []
+                    comment_block = []
+
+                data_mode = True  # reading data
+                current_block.append(line)
+
+    if current_block:
+        data_blocks.append(process_data_block(current_block))
+
+    data_blocks, labels = fix_backward_blocks(data_blocks, labels)
+
+    combined_data = combine_data_with_labels(data_blocks, labels)
+
+    return labels, data_blocks, combined_data
+
+
+def extract_description(comment_block, last_label):
+    for line in comment_block:
+        if "Spec forward" in line:
+            return "forward"
+        elif "Spec backward" in line:
+            return "backward"
+        elif "pause" in line:
+            if last_label == "forward":
+                return "forward pause"
+            elif last_label == "backward":
+                return "backward pause"
+            else:
+                return "pause"
+
+    return None
+
+
+def process_data_block(block):
+    processed_block = [list(map(float, row.split(";"))) for row in block]
+    return np.array(processed_block)
+
+def fix_backward_blocks(data_blocks, labels):
+    for i, label in enumerate(labels):
+        if label in ["backward", "backward pause"]:
+            data_blocks[i] = data_blocks[i][::-1]
+
+    return data_blocks, labels
+
+def combine_data_with_labels(data_blocks, labels):
+    label_map = {
+        "forward": "f",
+        "forward pause": "fp",
+        "backward": "b",
+        "backward pause": "bp"
+    }
+
+    labeled_data = []
+
+    for block, label in zip(data_blocks, labels):
+        section_marker = label_map[label]
+        section_column = np.array([[section_marker]] * block.shape[0], dtype=object)
+        labeled_block = np.hstack((block.astype(np.float64), section_column))
+        labeled_data.append(labeled_block)
+
+    return np.vstack(labeled_data) if labeled_data else np.empty((0, data_blocks.shape[1] + 1), dtype=object)
+
+
+
+
 @dataclass
 class IndentationSet:
     """Collection of indentation curves from one or multiple files."""
@@ -31,48 +158,21 @@ class IndentationSet:
     def _load_file_afm_calib(self, path: Path) -> List[Dict]:
         """Internal method to load data from a single file."""
 
-        def parse_metadata(file_path):
-            """Helper method for metatdata."""
-            metadata = {}
-            
-            with open(file_path, 'r') as file:
-                for line in file:
-                    # Skip empty lines
-                    if not line.strip():
-                        continue
-                        
-                    # Stop when we hit a non-metadata line
-                    if not line.startswith('#'):
-                        break
-                        
-                    key, value = line[1:].strip().split('=')
-                    
-                    # Handle different cases based on key
-                    if key in ['Spring-Constant', 'Deflection-Sensitivity']:
-                        # Extract number before unit
-                        value = float(''.join(c for c in value if c.isdigit() or c in '.-e'))
-                        
-                    elif key in ['SpecMap-CurIndex', 'SpecMap-PhaseCount']:
-                        value = int(value)
-                        
-                    elif key in ['SpecMap-Dim', 'SpecMap-Size']:
-                        # Convert semicolon-separated values to numpy array
-                        value = np.array([float(x) if '.' in x or 'e' in x else int(x) 
-                                        for x in value.split(';')])
-                        
-                    metadata[key] = value
-            
-            return metadata
-
         metadata = parse_metadata(path)
-        _, voltage, z1 = np.loadtxt(path, skiprows=18, delimiter=";").T
+        labels, data_sections, combined_data = parse_file(path)
+
+        z1 = combined_data[:, 0]
+        voltage = combined_data[:, 1]
+        labels = combined_data[:, -1]
 
         curves = []
         curve_dict = {
             "raw": {
-                "force": voltage, # FIX THIS LATER
-                "z": -z1,
+                "force": voltage,
+                "deflection": voltage,
+                "z": z1,
                 "time": np.zeros(len(voltage)),
+                "labels": labels
             },
             "metadata": {
                 "file": str(path)
@@ -87,66 +187,11 @@ class IndentationSet:
     def _load_file_afm(self, path: Path) -> List[Dict]:
         """Internal method to load data from a single file."""
 
-        def parse_metadata(file_path):
-            """Helper method for metatdata."""
-            metadata = {}
-            
-            with open(file_path, 'r') as file:
-                for line in file:
-                    # Skip empty lines
-                    if not line.strip():
-                        continue
-                        
-                    # Stop when we hit a non-metadata line
-                    if not line.startswith('#'):
-                        break
-                        
-                    key, value = line[1:].strip().split('=')
-                    
-                    # Handle different cases based on key
-                    if key in ['Spring-Constant', 'Deflection-Sensitivity']:
-                        # Extract number before unit
-                        value = float(''.join(c for c in value if c.isdigit() or c in '.-e'))
-                        
-                    elif key in ['SpecMap-CurIndex', 'SpecMap-PhaseCount']:
-                        value = int(value)
-                        
-                    elif key in ['SpecMap-Dim', 'SpecMap-Size']:
-                        # Convert semicolon-separated values to numpy array
-                        value = np.array([float(x) if '.' in x or 'e' in x else int(x) 
-                                        for x in value.split(';')])
-                        
-                    metadata[key] = value
-            
-            return metadata
-
-        
-        def parse_file(file_path):
-            with open(file_path, 'r') as file:
-                content = file.read()
-
-
-            if '#Spec-Name=Spec backward' in content:
-                forward, backward = content.split('#Spec-Name=Spec backward')
-
-            forward = forward.splitlines()
-            forward = np.array(forward[18:-2])
-            forward = [[float(value) for value in row.split(";")] for row in forward]
-            forward = np.array(forward)
-
-            backward = backward.splitlines()
-            backward = np.array(backward[4:])
-            backward = [[float(value) for value in row.split(";")] for row in backward]
-            backward = np.array(backward)
-
-            return forward, backward
-
-        
         metadata = parse_metadata(path)
-        forward, backward = parse_file(path)
+        labels, data_sections, combined_data = parse_file(path)
 
-        z1 = forward[:, 0]
-        voltage = forward[:, 1]
+        z1 = combined_data[:, 0]
+        voltage = combined_data[:, 1]
 
         defl_sens = metadata["Deflection-Sensitivity"]
         k = metadata["Spring-Constant"]
@@ -158,17 +203,6 @@ class IndentationSet:
         print(f"deflection sensitivity: {defl_sens}")
         print(f"spring constant: {k}")
 
-        # retraction curve
-        z1_retract = backward[:, 0]
-        voltage_retract = backward[:, 1]
-        
-        z1_retract = z1_retract[::-1]
-        voltage_retract = voltage_retract[::-1]
-
-        d_load_retract = metadata["Deflection-Sensitivity"] * voltage_retract
-        force_retract = metadata["Spring-Constant"] * d_load_retract
-        w_retract = z1_retract - d_load_retract
-
         name = "Image" + str(path).split('Image')[-1].split(".txt")[0]
         
         curves = []
@@ -179,8 +213,7 @@ class IndentationSet:
                 "force": force * 1e6,
                 "z": w * 1e6,
                 "time": np.zeros(len(force)),
-                "force_retract": force_retract * 1e6,
-                "z_retract": w_retract * 1e6
+                "labels": combined_data[:, -1]
             },
             "metadata": {
                 "file": str(path),
@@ -196,74 +229,38 @@ class IndentationSet:
     def _load_file_fluidfm(self, path: Path) -> List[Dict]:
         """Internal method to load data from a single file."""
 
-        def parse_metadata(file_path):
-            """Helper method for metatdata."""
-            metadata = {}
-            
-            with open(file_path, 'r') as file:
-                for line in file:
-                    # Skip empty lines
-                    if not line.strip():
-                        continue
-                        
-                    # Stop when we hit a non-metadata line
-                    if not line.startswith('#'):
-                        break
-                        
-                    key, value = line[1:].strip().split('=')
-                    
-                    # Handle different cases based on key
-                    if key in ['Spring-Constant', 'Deflection-Sensitivity']:
-                        # Extract number before unit
-                        value = float(''.join(c for c in value if c.isdigit() or c in '.-e'))
-                        
-                    elif key in ['SpecMap-CurIndex', 'SpecMap-PhaseCount']:
-                        value = int(value)
-                        
-                    elif key in ['SpecMap-Dim', 'SpecMap-Size']:
-                        # Convert semicolon-separated values to numpy array
-                        value = np.array([float(x) if '.' in x or 'e' in x else int(x) 
-                                        for x in value.split(';')])
-                        
-                    metadata[key] = value
-            
-            return metadata
-
-        def parse_file(file_path):
-            with open(file_path, 'r') as file:
-                content = file.read()
-
-
-            if '#Spec-Name=Spec backward' in content:
-                forward, _ = content.split('#Spec-Name=Spec backward')
-
-            forward = forward.splitlines()
-            forward = np.array(forward[18:-2])
-            forward = [[float(value) for value in row.split(";")] for row in forward]
-            forward = np.array(forward)
-
-            return forward
-        
-
         metadata = parse_metadata(path)
-        #z1, voltage, _, _, _, _ = np.loadtxt(path, skiprows=18, delimiter=";").T
+        labels, data_sections, combined_data = parse_file(path)
 
-        forward = parse_file(path)
+        z1 = combined_data[:, 0]
+        voltage = combined_data[:, 1]
 
-        z1 = forward[:, 0]
-        voltage = forward[:, 1]
+        #forward, backward = parse_file2(path)
+
+        #z1 = forward[:, 0]
+        #voltage = forward[:, 1]
   
         d_load = metadata["Deflection-Sensitivity"] * voltage 
         force = metadata["Spring-Constant"] * d_load 
         w = z1 - d_load
-        
+
+        # retraction curve
+        #z1_retract = backward[:, 0]
+        #voltage_retract = backward[:, 1]
+
+        #d_load_retract = metadata["Deflection-Sensitivity"] * voltage_retract
+        #force_retract = metadata["Spring-Constant"] * d_load_retract
+        #w_retract = z1_retract - d_load_retract
+
         curves = []
         curve_dict = {
             "raw": {
+                "z_piezo": z1 * 1e6,
                 "force": force * 1e6,
                 "z": w * 1e6,
                 "time": np.zeros(len(force)),
-                "deflection": np.zeros(len(force))
+                "deflection": d_load * 1e6,
+                "labels": combined_data[:, -1]
             },
             "metadata": {
                 "file": str(path)
@@ -274,7 +271,7 @@ class IndentationSet:
             
         return curves
 
-        
+
     def _load_file_ft(self, path: Path) -> List[Dict]:
         """Internal method to load data from a single file."""
         # Read the file using pandas
@@ -299,7 +296,7 @@ class IndentationSet:
                 "raw": {
                     "force": curve_data['f'].values,
                     "deflection": np.zeros(len(curve_data['f'])),
-                    "z": -curve_data['z'].values,
+                    "z": curve_data['z'].values,
                     "time": curve_data['t'].values,
                 },
                 "metadata": {
@@ -395,14 +392,15 @@ class IndentationSet:
         """Process all curves using a sequence of functions."""
         for curve in self.data:
             processed_data = {
-                            "deflection": np.copy(curve["raw"]["deflection"]),
+                            "deflection": np.copy(curve["raw"]["deflection"]) if "deflection" in curve["raw"] else None,
                             "force": np.copy(curve["raw"]["force"]),
                             "z": np.copy(curve["raw"]["z"]),
-                            "time": np.copy(curve["raw"]["time"]) if "time" in curve["raw"] else None}
+                            "time": np.copy(curve["raw"]["time"]) if "time" in curve["raw"] else None,
+                            "labels": np.copy(curve["raw"]["labels"]) if "labels" in curve["raw"] else None}
             for func in processing_pipeline:
                 processed_data = func(processed_data)
             curve["processed"] = processed_data
-    
+
     def calculate_curve_parameter(self, function: Callable, **kwargs):
         """Process all curves using a sequence of functions."""
         if "processed" in self.data[0].keys():
