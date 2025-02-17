@@ -169,7 +169,7 @@ def plot_curve_parameters_bar(*indentation_sets: 'IndentationSet',
 
             param_values = [item[0] for item in values]
             r_2 = [item[1] for item in values]
-            values = [item[0] for item in values if (item[1] >= 0.5 and item[0] > 0)]
+            values = [item[0] for item in values if (item[1] >= r_2_thresh and item[0] > 0)]
             
             if not values:
                 continue
@@ -178,6 +178,7 @@ def plot_curve_parameters_bar(*indentation_sets: 'IndentationSet',
             mean_val = np.mean(values)
             std_val = np.std(values)
             print("Mean and std:", mean_val, std_val)
+            print(f"Number included: {len(values)}")
             
             # Plot bar with error
             bar = ax.bar(x_positions[idx], mean_val, width, 
@@ -221,7 +222,8 @@ def plot_curve_parameters_bar(*indentation_sets: 'IndentationSet',
     plt.show()
 
 
-def plot_instance_parameters_bar(indentation_set: 'IndentationSet', 
+def plot_instance_parameters_bar(indentation_set: 'IndentationSet',
+                                 r_2_thresh=0,
                                parameter_names: List[str] = None,
                                **kwargs) -> None:
     """
@@ -267,7 +269,9 @@ def plot_instance_parameters_bar(indentation_set: 'IndentationSet',
         # Extract values for this parameter
         values = [curve[param] for curve in indentation_set.data 
                  if param in curve]
-        
+
+        values = [item[0] for item in values if (item[1] >= r_2_thresh and item[0] > 0)]
+
         if not values:
             continue
             

@@ -27,12 +27,20 @@ def get_forward_curve(data):
     indices = np.where(labels == 'f')[0]
     last_index = indices[-1] if indices.size > 0 else -1
 
-    force = data["force"].copy()
-    displ = data["z"].copy()
-
     for key in data:
         if data[key] is not None:
             data[key] = data[key][0:last_index]
+
+    return data
+
+
+def get_retraction_curve(data):
+    labels = data['labels'].copy()
+    indices = np.where(labels == 'b')[0]
+
+    for key in data:
+        if data[key] is not None:
+            data[key] = data[key][indices]
 
     return data
     

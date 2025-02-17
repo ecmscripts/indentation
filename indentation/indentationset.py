@@ -98,7 +98,7 @@ def extract_description(comment_block, last_label):
             return "forward"
         elif "Spec backward" in line:
             return "backward"
-        elif "pause" in line:
+        elif "Spec fwd pause" in line:
             if last_label == "forward":
                 return "forward pause"
             elif last_label == "backward":

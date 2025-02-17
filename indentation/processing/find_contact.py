@@ -21,7 +21,12 @@ def findContact_minimum(data):
 
 def findContact_deflection(data):
     data_copy = data.copy()
-    ix_cut = np.where(data_copy["deflection"] > 0.01)[0][0]
+
+    indices = np.where(data_copy["deflection"] > 0.01)[0]
+    if indices.size:
+        ix_cut = indices[0]
+    else:
+        ix_cut = -1
     #ix_cut = np.argmin(data_copy["force"])
     for key in ["time", "z", "force"]:
         data_copy[key] = data_copy[key][ix_cut:]
