@@ -175,7 +175,8 @@ class IndentationSet:
                 "labels": labels
             },
             "metadata": {
-                "file": str(path)
+                "file": str(path),
+                "index": int(str(path).split("_")[-1].split(".")[0])
             }
         }
     
@@ -217,10 +218,11 @@ class IndentationSet:
             },
             "metadata": {
                 "file": str(path),
-                "name": name
+                "name": name,
+                "index": int(str(path).split("_")[-1].split(".")[0])
             }
         }
-    
+
         curves.append(curve_dict)
 
         return curves
@@ -263,7 +265,8 @@ class IndentationSet:
                 "labels": combined_data[:, -1]
             },
             "metadata": {
-                "file": str(path)
+                "file": str(path),
+                "index": int(str(path).split("_")[-1].split(".")[0])
             }
         }
     
@@ -396,7 +399,8 @@ class IndentationSet:
                             "force": np.copy(curve["raw"]["force"]),
                             "z": np.copy(curve["raw"]["z"]),
                             "time": np.copy(curve["raw"]["time"]) if "time" in curve["raw"] else None,
-                            "labels": np.copy(curve["raw"]["labels"]) if "labels" in curve["raw"] else None}
+                            "labels": np.copy(curve["raw"]["labels"]) if "labels" in curve["raw"] else None,
+                            "index": np.copy(curve["metadata"]["index"]) if "index" in curve["metadata"] else None}
             for func in processing_pipeline:
                 processed_data = func(processed_data)
             curve["processed"] = processed_data

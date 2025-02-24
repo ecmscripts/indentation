@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import fmin
 from scipy.signal import convolve
 from scipy.signal.windows import gaussian
+import matplotlib.pyplot as plt
 
 import torch
 
@@ -22,7 +23,7 @@ def findContact_minimum(data):
 def findContact_deflection(data):
     data_copy = data.copy()
 
-    indices = np.where(data_copy["deflection"] > 0.01)[0]
+    indices = np.where(data_copy["deflection"] > 0.003)[0]
     if indices.size:
         ix_cut = indices[0]
     else:
@@ -59,12 +60,11 @@ def findContact_blackMagic_CNN(data, net, N):
         print("Discarded curve.")
 
 
-def findContact_blackMagic(data, N_int=1000, padding_fraction=0.02):
-        
+def findContact_blackMagic(data, N_int=2000, padding_fraction=0.02):
+         
     # Extract and copy data
     force_r = np.array(data["force"].copy(), dtype=np.float64)
     displ_r = np.array(data["z"].copy(), dtype=np.float64)
-
     
     # Interpolate data and normalize
     displ = np.linspace(displ_r[0], displ_r[-1], N_int)
@@ -99,10 +99,18 @@ def findContact_blackMagic(data, N_int=1000, padding_fraction=0.02):
     zline = np.zeros((len(img.T)))
     
     # Track maximum points
-    for ix_glob in range(10, int(3*N_int/4), int(N_int/30)):
+    for ix_glob in range(10, N_int-2, int(N_int/30)):
         ix = ix_glob
         for i, line in enumerate(img[::-1]):
             ixs = [ix, ix+1, ix-1]
+
+            if ix + 1 >= len(line):
+                ixs = [ix, ix, ix-1]
+            elif ix -1 < 0:
+                ix = [ix, ix+1, ix]
+            else:
+                ixs = [ix, ix+1, ix-1]
+            
             ixmax = np.argmax([line[ixs[0]], line[ixs[1]], line[ixs[2]]])
             ix = ixs[ixmax]
             imgc[::-1][i, ix] = -0.3
@@ -111,6 +119,7 @@ def findContact_blackMagic(data, N_int=1000, padding_fraction=0.02):
         list_ix.append(ix)
     
     # Find cut point
+    contact_indices = np.argwhere(zline == np.amax(zline))
     contact_index = np.argmax(zline)
     contact_index = int(contact_index/N_int * len(force_r))
     

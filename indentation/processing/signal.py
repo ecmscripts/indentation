@@ -28,7 +28,7 @@ def get_forward_curve(data):
     last_index = indices[-1] if indices.size > 0 else -1
 
     for key in data:
-        if data[key] is not None:
+        if data[key] is not None and data[key].size > 1:
             data[key] = data[key][0:last_index]
 
     return data
@@ -79,7 +79,8 @@ def crop_start(data, ix_start):
     displ = data["z"].copy()
 
     for key in data:
-        data[key] = data[key][ix_start:]
+        if data[key] is not None and data[key].size > 1:
+            data[key] = data[key][ix_start:]
     return data
 
 

@@ -103,6 +103,108 @@ def plot_mean_force_curves(*indentation_sets: 'IndentationSet',
     plt.show()
 
 
+def create_heat_map(*indentation_sets: 'IndentationSet', r_2_thresh=0,
+                    parameter_names: List[str] = None,
+                    labels: List[str] = None):
+
+    param = 'youngs_modulus'
+
+    for idx, indentation_set in enumerate(indentation_sets):
+        # for curve in indentation_set.data:
+        #     print("!index!")
+        #     print(curve["metadata"]["index"])
+
+        values = [curve[param] for curve in indentation_set.data
+                  if param in curve]
+
+        param_values = [item[0] for item in values]
+        r_2 = [item[1] for item in values]
+        #values = [item[0] for item in values if (item[1] >= r_2_thresh and item[0] > 0)]
+        values = [item[0] if (item[1] >= r_2_thresh and item[0] > 0) else None for item in values]
+        #values = [item[0] for item in values]
+
+        if not values:
+            continue
+
+        size = int(np.sqrt(len(values)))  # Ensure square grid
+        if size * size != len(values):
+            raise ValueError("Number of measurements must be a perfect square.")
+
+        # Generate the order pattern dynamically
+        order = np.zeros((size, size), dtype=int)
+        index = 0
+        for i in range(size - 1, -1, -1):  # Start from the bottom row
+            if (size - 1 - i) % 2 == 0:  # Left to right
+                order[i, :] = range(index, index + size)
+            else:  # Right to left
+                order[i, :] = range(index + size - 1, index - 1, -1)
+            index += size
+
+        # Fill heatmap data using generated order
+        heatmap_data = np.zeros((size, size))
+        for i in range(size):
+            for j in range(size):
+                heatmap_data[i, j] = values[order[i, j]]
+
+        cmap = plt.cm.coolwarm.copy()
+        cmap.set_bad(color='black')
+
+        # Plot heatmap
+        plt.figure(figsize=(5, 5))
+        plt.imshow(heatmap_data, cmap=cmap, interpolation='none')
+
+        # Add color bar
+        plt.colorbar(label="Measurement Value")
+
+        # Add labels
+        for i in range(size):
+            for j in range(size):
+                plt.text(j, i, f"{heatmap_data[i, j]:.1f}", ha='center', va='center', color='black')
+
+        # Set axis labels and title
+        plt.xticks([])
+        plt.yticks([])
+        plt.title(f"{size}x{size} Heatmap of Measurements")
+
+        # Show plot
+        plt.show()
+
+
+
+def create_histogram(*indentation_sets: 'IndentationSet', r_2_thresh=0,
+                    parameter_names: List[str] = None,
+                    labels: List[str] = None):
+
+    param = 'youngs_modulus'
+
+    for idx, indentation_set in enumerate(indentation_sets):
+        # for curve in indentation_set.data:
+        #     print("!index!")
+        #     print(curve["metadata"]["index"])
+
+        values = [curve[param] for curve in indentation_set.data
+                  if param in curve]
+
+        param_values = [item[0] for item in values]
+        r_2 = [item[1] for item in values]
+        #values = [item[0] for item in values if (item[1] >= r_2_thresh and item[0] > 0)]
+        values = [item[0] if (item[1] >= r_2_thresh and item[0] > 0) else None for item in values]
+        #values = [item[0] for item in values]
+
+        if not values:
+            continue
+
+        hist_values = [x for x in values if x is not None]
+        print(hist_values)
+
+        plt.figure()
+        plt.hist(hist_values)
+        plt.show()
+
+
+
+
+
 def plot_curve_parameters_bar(*indentation_sets: 'IndentationSet',
                             r_2_thresh=0,
                             parameter_names: List[str] = None,

@@ -128,7 +128,23 @@ def calculate_r_squared(y_actual, y_fitted):
 
         # Calculate R^2
     r_squared = 1 - (ss_res / ss_tot)
-    
+
+    # print("percent deviation")
+    # percent_dev = []
+    # for i, val in enumerate(y_actual):
+    #     if val != 0:
+    #         percent_dev.append(np.abs((y_actual[i] - y_fitted[i])) / y_actual[i] * 100.0)
+    #
+    # mean_percent_dev = np.mean(percent_dev)
+    # print(mean_percent_dev)
+    #
+    # print("RMSE")
+    # RMSE = np.sqrt(np.mean((y_actual - y_fitted)**2.0))
+    # print(RMSE*1e3)
+    #
+    # print("R_squared")
+    # print(r_squared)
+
     return r_squared
 
 
