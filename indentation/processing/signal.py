@@ -34,12 +34,39 @@ def get_forward_curve(data):
     return data
 
 
+def add_noise(data):
+    force = data['force'].copy()
+
+    amplitude = 1e-5 #1e-6
+    freq_H = 1e8 # Hz 1e7
+    freq_L = 1e4 # Hz
+    fs = 1000 #Hz
+    n = len(data["force"])
+    i = np.linspace(0, n, n)
+
+    print(i/fs)
+    random_noise = np.random.normal(loc=0, scale=amplitude, size=(len(data["force"]),))
+    sinusoidal_noise_highF = amplitude * np.sin(2 * np.pi * freq_H * i / fs)
+    sinusoidal_noise_lowF = amplitude * np.cos(2 * np.pi * freq_L * i / fs)
+
+    print(random_noise)
+    data["force"] = force + sinusoidal_noise_lowF + sinusoidal_noise_highF + random_noise
+    return data
+    
+
+
+def remove_curves_below_force_thresh(data):
+    print()
+
+
 def get_retraction_curve(data):
     labels = data['labels'].copy()
     indices = np.where(labels == 'b')[0]
 
     for key in data:
-        if data[key] is not None:
+        if data[key] is not None and data[key].size > 1:
+            print(key)
+            print(data[key])
             data[key] = data[key][indices]
 
     return data

@@ -309,7 +309,40 @@ class IndentationSet:
             curves.append(curve_dict)
             
         return curves
-    
+
+
+    def _load_file_csv(self, path: Path) -> List[Dict]:
+        """Internal method to load data from a single file."""
+
+        imported = pd.read_csv(
+            path,
+            skiprows=1,
+            names=["U", "F"]
+        )
+
+        #,sep=r"\s+"
+
+        print(imported)
+
+        z1 = imported["U"]
+        force = imported["F"]
+
+        curves = []
+        curve_dict = {
+            "raw": {
+                "force": -force,
+                "z": -z1,
+                "time": np.zeros(len(force))
+            },
+            "metadata": {
+                "file": str(path)
+            }
+        }
+
+        curves.append(curve_dict)
+
+        return curves
+
     def append(self, file_paths: Union[str, Path, List[Union[str, Path]]]) -> None:
         """Append data from additional files to the existing measurement set."""
         # Convert input to list of Path objects
@@ -340,6 +373,10 @@ class IndentationSet:
         elif self.exp_type == "fluidfm":
             for path in paths:
                 new_curves = self._load_file_fluidfm(path)
+                self.data.extend(new_curves)
+        elif self.exp_type == "csv":
+            for path in paths:
+                new_curves = self._load_file_csv(path)
                 self.data.extend(new_curves)
         else:
             print("Experiment type does not exist. :(")

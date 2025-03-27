@@ -60,7 +60,7 @@ def findContact_blackMagic_CNN(data, net, N):
         print("Discarded curve.")
 
 
-def findContact_blackMagic(data, N_int=2000, padding_fraction=0.02):
+def findContact_blackMagic(data, N_int=1000, padding_fraction=0.02):
          
     # Extract and copy data
     force_r = np.array(data["force"].copy(), dtype=np.float64)
@@ -117,11 +117,19 @@ def findContact_blackMagic(data, N_int=2000, padding_fraction=0.02):
             
         zline[ix] += 1
         list_ix.append(ix)
+
+    plt.figure()
+    plt.imshow(imgc)
+    plt.show()
     
     # Find cut point
     contact_indices = np.argwhere(zline == np.amax(zline))
     contact_index = np.argmax(zline)
     contact_index = int(contact_index/N_int * len(force_r))
+
+    print(list_ix)
+    print(contact_indices)
+    print(contact_index)
     
     # Create new dictionary with cropped data
     result_data = {}
@@ -129,5 +137,10 @@ def findContact_blackMagic(data, N_int=2000, padding_fraction=0.02):
         # Crop array from contact point and subtract initial value
         cropped_array = data[key][contact_index:].copy()
         result_data[key] = cropped_array - cropped_array[0]
+
+    plt.figure()
+    plt.plot(data["z"], data["force"], 'r-')
+    plt.axvline(x=data["z"][contact_index])
+    plt.show()
     
     return result_data
