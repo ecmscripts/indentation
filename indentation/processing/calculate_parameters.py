@@ -3,6 +3,7 @@ from scipy.optimize import fmin
 from indentation.processing import plotting
 from matplotlib import pyplot as plt
 import os
+from pathlib import Path
 
 def parameter_defelection_sensitivity(data, keyname="d_sens"):
     voltage = data["force"]
@@ -379,17 +380,19 @@ def parameter_youngs_modulus_lstsq(data, radius, nu, cutoff, n=3.0/2.0, x0=[5000
             plt.ylabel("Force [uN]")
             plt.legend(["Data", f"lstsq: E = {round(E_lstsq*1e3, 2)} kPa, r_2 = {round(r_2_lstsq, 2)}"])
             plt.tight_layout()
-
+            
             filename = str(data["file"])
             folder_name = os.path.dirname(filename)
-            folder_name = str(folder_name) + "\\output\\Hertz_fit\\"
+            new_folder = Path(folder_name) / "output" / "Hertz_fit"  
+            
             name = str(data["name"])
             index = str(data["index"])
-        
+
+            folder_name = new_folder
             os.makedirs(folder_name, exist_ok=True)
 
-            image_filename = str(folder_name) + "HertzFit_" + str(name) + "_" + str(index) + ".jpg"
-        
+            image_filename = folder_name / f"HertzFit_{name}_{index}.jpg"
+            
             plt.savefig(image_filename)
             print(image_filename)
             

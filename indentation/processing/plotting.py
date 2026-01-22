@@ -9,6 +9,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy.interpolate import interp2d
 from scipy.interpolate import RegularGridInterpolator
 import os
+from pathlib import Path
 
 
 from indentation.indentationset import IndentationSet
@@ -400,13 +401,24 @@ def create_heat_map(*indentation_sets: 'IndentationSet', r_2_thresh=0,
         plt.title(f"{size}x{size} Heatmap of Measurements")
         plt.tight_layout()
 
-        folder_name = os.path.dirname(filepath) + "\\"
-        folder_name = str(folder_name) + "\\output\\"
-        
+
+        folder_name = os.path.dirname(filepath)
+        new_folder = Path(folder_name) / "output"
+
+        folder_name = new_folder
         os.makedirs(folder_name, exist_ok=True)
+
+        image_filename = folder_name / f"Heatmap_{name}.jpg"
+        plt.savefig(image_filename)
+        print(str(image_filename))
         
-        plt.savefig(str(folder_name) + "Heatmap_" + str(name) + ".jpg")
-        print(str(folder_name) + "Heatmap_" + str(name) + ".jpg")
+        # folder_name = os.path.dirname(filepath) + "\\"
+        # folder_name = str(folder_name) + "\\output\\"
+        
+        # os.makedirs(folder_name, exist_ok=True)
+        
+        # plt.savefig(str(folder_name) + "Heatmap_" + str(name) + ".jpg")
+        # print(str(folder_name) + "Heatmap_" + str(name) + ".jpg")
 
         # Show plot
         plt.show()
@@ -529,14 +541,18 @@ def create_histogram(*indentation_sets: 'IndentationSet', r_2_thresh=0,
         plt.xlabel("Apparent Young's modulus [kPa]")
         plt.tight_layout()
 
+        folder_name = os.path.dirname(filepath)
+        new_folder = Path(folder_name) / "output"
+        
+        #folder_name = os.path.dirname(filepath) + "\\"
+        #folder_name = str(folder_name) + "\\output\\"
 
-        folder_name = os.path.dirname(filepath) + "\\"
-        folder_name = str(folder_name) + "\\output\\"
-        
+        folder_name = new_folder
         os.makedirs(folder_name, exist_ok=True)
-        
-        plt.savefig(str(folder_name) + "Histogram_" + str(name) + ".jpg")
-        print(str(folder_name) + "Histogram_" + str(name) + ".jpg")
+
+        image_filename = folder_name / f"Histogram_{name}.jpg"
+        plt.savefig(image_filename)
+        print(str(image_filename))
 
         
         plt.show()
@@ -669,13 +685,23 @@ def plot_curve_parameters_bar(*indentation_sets: 'IndentationSet',
     plt.tight_layout()
 
     # Save as jpg file
-    folder_name = os.path.dirname(filepath) + "\\"
-    folder_name = str(folder_name) + "\\output\\"
-        
+    folder_name = os.path.dirname(filepath)
+    new_folder = Path(folder_name) / "output"
+
+    folder_name = new_folder
     os.makedirs(folder_name, exist_ok=True)
+
+    image_filename = folder_name / f"BarChart_{name}.jpg"
+    plt.savefig(image_filename)
+    print(str(image_filename))
+
+    # folder_name = os.path.dirname(filepath) + "\\"
+    # folder_name = str(folder_name) + "\\output\\"
         
-    plt.savefig(str(folder_name) + "BarChart_" + str(name) + ".jpg")
-    print(str(folder_name) + "BarChart_" + str(name) + ".jpg")
+    # os.makedirs(folder_name, exist_ok=True)
+        
+    # plt.savefig(str(folder_name) + "BarChart_" + str(name) + ".jpg")
+    # print(str(folder_name) + "BarChart_" + str(name) + ".jpg")
     
 
     # Show plot

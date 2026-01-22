@@ -213,6 +213,8 @@ class IndentationSet:
         name2 = "Image_" + str(path).split('Image_')[-1].split("_")[0]
 
         name = "Image_" + str(path).split("\\")[-1].split('.txt')[0]
+        name = "Image_" + Path(path).stem
+
         
         curves = []
         curve_dict = {
@@ -264,6 +266,7 @@ class IndentationSet:
         #w_retract = z1_retract - d_load_retract
 
         name = "Image_" + str(path).split("\\")[-1].split("_")[0]
+        name = "Image_" + Path(path).stem
         
         curves = []
         curve_dict = {
@@ -718,16 +721,23 @@ class IndentationSet:
         if show:
             plt.show()
 
+        folder_name = os.path.dirname(filename)
+        new_folder = Path(folder_name) / "output"
+        
+        
+        # folder_name = os.path.dirname(filename) + "\\"
+        # print(folder_name) 
+        # print(str(folder_name) + "output\\test.jpg")
+        # folder_name = str(folder_name) + "\\output\\"
 
-        folder_name = os.path.dirname(filename) + "\\"
-        print(folder_name) 
-        print(str(folder_name) + "output\\test.jpg")
-        folder_name = str(folder_name) + "\\output\\"
-        
+        folder_name = new_folder
         os.makedirs(folder_name, exist_ok=True)
-        
-        fig.savefig(str(folder_name) + str(name) + ".jpg")
-        print(str(folder_name) + str(name) + ".jpg")
+
+        #image_filename = str(folder_name) + str(name) + ".jpg"
+
+        image_filename = folder_name / f"{name}.jpg"
+        fig.savefig(image_filename)
+        print(image_filename)
 
         
         return fig, ax
