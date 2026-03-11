@@ -507,13 +507,15 @@ def create_histogram(*indentation_sets: 'IndentationSet', r_2_thresh=0,
         with open(filename, mode='w') as file:
             writer = csv.writer(file, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
 
-            writer.writerow(['Name', 'Index', 'E', 'R_2'])
+            writer.writerow(['Name', 'Index', 'E', 'R_2', 'Max_Adhesion_Force'])
             for curve in indentation_set.data:
                 E = curve[param][0]
                 r_2 = curve[param][1]
                 index = curve["metadata"]["index"]
                 name = curve["metadata"]["name"]
-                writer.writerow([name, index, E, r_2])
+                #max_adh_force = curve["max_retraction_force"]
+                max_adh_force = curve.get("max_retraction_force", 0)
+                writer.writerow([name, index, E, r_2, max_adh_force])
 
             
 

@@ -169,8 +169,8 @@ def parameter_approach_slope_lstsq(data, keyname="linear_slope", show_plot=False
     force = data["force"].copy()  # Force in µN 
     disp = data["z"].copy()   # Displacement in µm
 
-    #seg_length = 1000 #--> change back to this for hydrogels
-    seg_length = 100 # for PDMS this is better
+    seg_length = 1000 #--> change back to this for hydrogels
+    #seg_length = 100 # for PDMS this is better
     n = len(force)
     print(f"N: {max(1, int(n/seg_length))}")
     N = max(1, int(n/seg_length))

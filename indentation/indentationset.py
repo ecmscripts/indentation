@@ -129,13 +129,29 @@ def combine_data_with_labels(data_blocks, labels):
         "backward pause": "bp"
     }
 
+    sampling_rates = {
+        "f": 3000,   # 1 kHz
+        "fp": 6553.6,   # 100 Hz
+        "b": 3000,   # 1 kHz
+        "bp": 6553.6    # 100 Hz
+    }
+
     labeled_data = []
+    current_time = 0.0
 
     for block, label in zip(data_blocks, labels):
         section_marker = label_map[label]
+        dt = 1.0 / sampling_rates[section_marker]
+
+        num_points = block.shape[0]
+        time_vector = np.linspace(current_time, current_time + (num_points - 1) * dt, num_points).reshape(-1, 1)
+        
         section_column = np.array([[section_marker]] * block.shape[0], dtype=object)
-        labeled_block = np.hstack((block.astype(np.float64), section_column))
+
+        labeled_block = np.hstack((block.astype(np.float64), time_vector, section_column))
         labeled_data.append(labeled_block)
+
+        current_time += num_points * dt
 
     return np.vstack(labeled_data) if labeled_data else np.empty((0, data_blocks.shape[1] + 1), dtype=object)
 
@@ -164,6 +180,7 @@ class IndentationSet:
 
         z1 = combined_data[:, 0]
         voltage = combined_data[:, 1]
+        time = combined_data[:, -2]
         labels = combined_data[:, -1]
 
         name = "Image_" + str(path).split('Image_')[-1].split("_")[0]
@@ -175,7 +192,7 @@ class IndentationSet:
                 "force": voltage,
                 "deflection": voltage,
                 "z": z1,
-                "time": np.zeros(len(voltage)),
+                "time": time,
                 "labels": labels
             },
             "metadata": {
@@ -198,6 +215,7 @@ class IndentationSet:
 
         z1 = combined_data[:, 2] # 0 or 2
         voltage = combined_data[:, 1]
+        time = combined_data[:, -2]
 
         defl_sens = metadata["Deflection-Sensitivity"]
         k = metadata["Spring-Constant"]
@@ -223,7 +241,7 @@ class IndentationSet:
                 "deflection": d_load * 1e6,
                 "force": force * 1e6,
                 "z": w * 1e6,
-                "time": np.zeros(len(force)),
+                "time": time,
                 "labels": combined_data[:, -1],
                 "keep": True
             },
@@ -247,7 +265,8 @@ class IndentationSet:
 
         z1 = combined_data[:, 0]
         voltage = combined_data[:, 1]
-
+        time = combined_data[:, -2]
+    
         #forward, backward = parse_file2(path)
 
         #z1 = forward[:, 0]
@@ -274,7 +293,7 @@ class IndentationSet:
                 "z_piezo": z1 * 1e6,
                 "force": force * 1e6,
                 "z": w * 1e6,
-                "time": np.zeros(len(force)),
+                "time": time,
                 "deflection": d_load * 1e6,
                 "labels": combined_data[:, -1]
             },
@@ -309,7 +328,12 @@ class IndentationSet:
             # Get data for current curve
             curve_data = imported[imported['ix'] == _].copy()
 
-            name = "Grid_" + str(path).split("\\")[-1].split(".")[0]
+            #name = "Grid_" + str(path).split("\\")[-1].split(".")[0]
+
+            filename = os.path.basename(path)  # Get just the file name if it's a full path
+
+            name_part, extension = os.path.splitext(filename)
+            name = str(name_part)
             print(name)
             print(_)
             
@@ -343,7 +367,11 @@ class IndentationSet:
 
         #,sep=r"\s+"
 
-        print(imported)
+        filename = os.path.basename(path)  # Get just the file name if it's a full path
+
+        name_part, extension = os.path.splitext(filename)
+        name = str(name_part)
+        print(name)
 
         z1 = imported["U"]
         force = imported["F"]
@@ -358,7 +386,7 @@ class IndentationSet:
             },
             "metadata": {
                 "file": str(path), 
-                "name": str(path)
+                "name": name
             }
         }
 

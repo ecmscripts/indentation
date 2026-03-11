@@ -65,6 +65,29 @@ def findContact_blackMagic(data, N_int=2000, padding_fraction=0.02, show_plots=F
     # Extract and copy data
     force_r = np.array(data["force"].copy(), dtype=np.float64)
     displ_r = np.array(data["z"].copy(), dtype=np.float64)
+
+    # test
+    dx = displ_r[1] - displ_r[0] 
+    dy = np.gradient(force_r, dx)     # First derivative
+    d2y = np.gradient(dy, dx)
+    d3y = np.gradient(d2y, dx)
+
+    plt.figure()
+    plt.plot(data["z"], d3y, 'r-')
+    plt.axvline(x=0.5)
+    plt.show()
+    
+    plt.figure()
+    plt.plot(data["z"], d2y, 'r-')
+    plt.axvline(x=0.5)
+    plt.show()
+
+    plt.figure()
+    plt.plot(data["z"], dy, 'r-')
+    plt.axvline(x=0.5)
+    plt.show()
+    #test
+
     
     # Interpolate data and normalize
     displ = np.linspace(displ_r[0], displ_r[-1], N_int)
