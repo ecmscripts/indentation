@@ -334,6 +334,7 @@ def remove_slope(heatmap_data):
 
 
 def create_heat_map(*indentation_sets: 'IndentationSet', r_2_thresh=0,
+                    heatmap_dim = [0, 0],
                     parameter_names: List[str] = None,
                     labels: List[str] = None):
 
@@ -359,24 +360,27 @@ def create_heat_map(*indentation_sets: 'IndentationSet', r_2_thresh=0,
         if not values:
             continue
 
-        size = int(np.sqrt(len(values)))  # Ensure square grid
-        if size * size != len(values):
-            raise ValueError("Number of measurements must be a perfect square.")
+        # size = int(np.sqrt(len(values)))  # Ensure square grid
+        # if size * size != len(values):
+        #     raise ValueError("Number of measurements must be a perfect square.")
 
+        nrow = heatmap_dim[0]
+        ncol = heatmap_dim[1]
+        
         # Generate the order pattern dynamically
-        order = np.zeros((size, size), dtype=int)
+        order = np.zeros((nrow, ncol), dtype=int)
         index = 0
-        for i in range(size - 1, -1, -1):  # Start from the bottom row
-            if (size - 1 - i) % 2 == 0:  # Left to right
-                order[i, :] = range(index, index + size)
+        for i in range(nrow - 1, -1, -1):  # Start from the bottom row
+            if (nrow - 1 - i) % 2 == 0:  # Left to right
+                order[i, :] = range(index, index + ncol)
             else:  # Right to left
-                order[i, :] = range(index + size - 1, index - 1, -1)
-            index += size
+                order[i, :] = range(index + ncol - 1, index - 1, -1)
+            index += ncol
 
         # Fill heatmap data using generated order
-        heatmap_data = np.zeros((size, size))
-        for i in range(size):
-            for j in range(size):
+        heatmap_data = np.zeros((nrow, ncol))
+        for i in range(nrow):
+            for j in range(ncol):
                 heatmap_data[i, j] = values[order[i, j]]
 
         cmap = plt.cm.coolwarm.copy()
@@ -384,21 +388,56 @@ def create_heat_map(*indentation_sets: 'IndentationSet', r_2_thresh=0,
 
         # Plot heatmap
         plt.figure(figsize=(5, 5))
-        plt.imshow(heatmap_data, cmap=cmap, interpolation='none')
+        plt.imshow(heatmap_data, cmap=cmap, interpolation='none', aspect='auto')
         #plt.imshow(heatmap_data, cmap=cmap, interpolation='bilinear')
 
         # Add color bar
         plt.colorbar(label="E [kPa]")
 
         # Add labels
-        for i in range(size):
-            for j in range(size):
+        for i in range(nrow):
+            for j in range(ncol):
                 plt.text(j, i, f"{heatmap_data[i, j]:.1f}", ha='center', va='center', color='black')
 
+        
+        
+        # # Generate the order pattern dynamically
+        # order = np.zeros((size, size), dtype=int)
+        # index = 0
+        # for i in range(size - 1, -1, -1):  # Start from the bottom row
+        #     if (size - 1 - i) % 2 == 0:  # Left to right
+        #         order[i, :] = range(index, index + size)
+        #     else:  # Right to left
+        #         order[i, :] = range(index + size - 1, index - 1, -1)
+        #     index += size
+
+        # # Fill heatmap data using generated order
+        # heatmap_data = np.zeros((size, size))
+        # for i in range(size):
+        #     for j in range(size):
+        #         heatmap_data[i, j] = values[order[i, j]]
+
+        # cmap = plt.cm.coolwarm.copy()
+        # cmap.set_bad(color='black')
+
+        # # Plot heatmap
+        # plt.figure(figsize=(5, 5))
+        # plt.imshow(heatmap_data, cmap=cmap, interpolation='none')
+        # #plt.imshow(heatmap_data, cmap=cmap, interpolation='bilinear')
+
+        # # Add color bar
+        # plt.colorbar(label="E [kPa]")
+
+        # # Add labels
+        # for i in range(size):
+        #     for j in range(size):
+        #         plt.text(j, i, f"{heatmap_data[i, j]:.1f}", ha='center', va='center', color='black')
+        
+        
         # Set axis labels and title
         plt.xticks([])
         plt.yticks([])
-        plt.title(f"{size}x{size} Heatmap of Measurements")
+        plt.title(f"{nrow}x{ncol} Heatmap of Measurements")
         plt.tight_layout()
 
 
